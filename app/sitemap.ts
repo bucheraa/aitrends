@@ -8,7 +8,7 @@ type TrendSitemapData = {
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     const { data: trends } = await supabase
         .from("trends")
         .select("slug, updated_at")

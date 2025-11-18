@@ -12,13 +12,17 @@ const schema = z.object({
     sponsor_logo_url: z.string().url().optional(),
     sponsor_url: z.string().url().optional(),
     sponsor_label: z.string().optional(),
-    affiliates: z.array(z.object({
-        tool_name: z.string(),
-        tool_url: z.string().url(),
-        tool_logo_url: z.string().url().optional(),
-        description: z.string().optional(),
-        priority: z.number().int().optional()
-    })).optional()
+    affiliates: z
+        .array(
+            z.object({
+                tool_name: z.string(),
+                tool_url: z.string().url(),
+                tool_logo_url: z.string().url().optional(),
+                description: z.string().optional(),
+                priority: z.number().int().optional(),
+            }),
+        )
+        .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -28,10 +32,14 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const parsed = schema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    if (!parsed.success) {
+        return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
 
     const { affiliates, ...trendData } = parsed.data;
-    const supabase = createSupabaseAdminClient();
+
+    // Typ-Workaround: als any casten, damit .update(...) nicht auf "never" fällt
+    const supabase = createSupabaseAdminClient() as any;
 
     const { data: existing } = await supabase
         .from("trends")
@@ -55,9 +63,9 @@ export async function POST(req: NextRequest) {
 
     if (affiliates && affiliates.length > 0) {
         await supabase.from("trend_affiliates").delete().eq("trend_id", trendId);
-        await supabase.from("trend_affiliates").insert(
-            affiliates.map(a => ({ trend_id: trendId, ...a }))
-        );
+        await supabase
+            .from("trend_affiliates")
+            .insert(affiliates.map((a) => ({ trend_id: trendId, ...a })));
     }
 
     // Optional sofort revalidieren

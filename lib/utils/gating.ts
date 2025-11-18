@@ -1,33 +1,26 @@
-import { createSupabaseServerClient } from "../supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
 
-// Server-side helper
-export async function withProAccess(action: () => Promise<any>) {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
+export async function requireProUser(action: () => Promise<any>) {
+    const supabase = await createSupabaseServerClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) throw new Error("Unauthorized");
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (profile?.role !== "pro") throw new Error("Pro access required");
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single<Pick<Profile, "role">>(); // TYPING FIX
+
+    if (!profile || profile.role !== "pro") {
+        throw new Error("Pro access required");
+    }
 
     return action();
-}
-
-// Client-side hook (use in client components)
-import { useEffect, useState } from "react";
-import { supabaseClient } from "../supabase/client";
-
-export function useIsPro() {
-    const [isPro, setIsPro] = useState(false);
-
-    useEffect(() => {
-        supabaseClient.auth.getUser().then(({ data: { user } }) => {
-            if (user) {
-                supabaseClient.from("profiles").select("role").eq("id", user.id).single().then(({ data }) => {
-                    setIsPro(data?.role === "pro");
-                });
-            }
-        });
-    }, []);
-
-    return isPro;
 }

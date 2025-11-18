@@ -13,14 +13,22 @@ export async function POST(req: NextRequest) {
     const payload = await req.text();
     const sig = req.headers.get("stripe-signature");
 
+    if (!env.STRIPE_WEBHOOK_SECRET) {
+        throw new Error("Missing STRIPE_WEBHOOK_SECRET");
+    }
+
     let event;
     try {
-        event = stripe.webhooks.constructEvent(payload, sig!, env.STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(
+            payload,
+            sig!,
+            env.STRIPE_WEBHOOK_SECRET // jetzt garantiert string
+        );
     } catch (err) {
         return NextResponse.json({ error: "Webhook Error" }, { status: 400 });
     }
 
-    const supabase = createSupabaseAdminClient();
+    const supabase = createSupabaseAdminClient() as any;
 
     // Log event
     await supabase.from("webhook_logs").insert({

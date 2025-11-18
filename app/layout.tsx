@@ -4,20 +4,20 @@ import "./globals.css";               // ← DAS FEHLTE! Tailwind wird jetzt gel
 import { Navbar } from "@/components/navbar";
 
 export const metadata: Metadata = {
-    title: "AI Trends – Die Zukunft der KI",
-    description: "Automatisierte, datenbasierte Analyse aufstrebender KI-Trends",
+    title: "AI Trends - Aktuelle News zur Künstlichen Intelligenz",
+    description: "Die neuesten Nachrichten, Tools und Analysen aus der Welt der KI.",
+    openGraph: {
+        title: "AI Trends",
+        description: "Bleib up-to-date mit AI Trends.",
+        // images: ['/og-image.jpg'], // Ein Bild für Social Media Previews erstellen!
+    },
 };
 
-export default function RootLayout({
-                                       children,
-                                   }: {
-    children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="de" className="dark">      {/* dark mode forced – sieht futuristisch aus */}
-        <body className="min-h-screen bg-background text-foreground antialiased">
-        <Navbar />
-        <main>{children}</main>
+        <html lang="de" suppressHydrationWarning>
+        <body className="">
+        {children}
         </body>
         </html>
     );

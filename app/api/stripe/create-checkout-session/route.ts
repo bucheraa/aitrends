@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe/client";
 import { env } from "@/lib/env";
-import type { Database } from "@/lib/supabase/types";
 
-// NEU: Typ für eine Zeile in "profiles"
-type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileStripeCustomer = {
+    stripe_customer_id: string | null;
+};
 
 export async function POST(req: NextRequest) {
     const { priceId } = await req.json();
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     const {
         data: { user },
@@ -19,27 +19,34 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get or create Stripe customer
     let customerId: string;
 
-    // WICHTIG: explizites Generic an from<ProfileRow>
-    const { data: profile } = await supabase
-        .from<ProfileRow>("profiles")
+    // Profil auslesen (nur stripe_customer_id)
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
         .select("stripe_customer_id")
         .eq("id", user.id)
-        .single();
+        .single<ProfileStripeCustomer>();
+
+    if (profileError) {
+        console.error("Supabase profile error:", profileError);
+        return NextResponse.json({ error: "Profile lookup failed" }, { status: 500 });
+    }
 
     if (profile?.stripe_customer_id) {
         customerId = profile.stripe_customer_id;
     } else {
-        const customer = await stripe.customers.create({ email: user.email });
+        const customer = await stripe.customers.create({
+            email: user.email ?? undefined,
+        });
+
         customerId = customer.id;
 
-        // WICHTIG: auch hier from<ProfileRow> + normales update-Objekt
-        await supabase
-            .from<ProfileRow>("profiles")
-            .update({
-                stripe_customer_id: customerId,
-            })
+        // Typ-„Workaround“: hier Supabase als any, um das never-Problem zu umgehen
+        await (supabase as any)
+            .from("profiles")
+            .update({ stripe_customer_id: customerId })
             .eq("id", user.id);
     }
 

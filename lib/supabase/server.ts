@@ -1,11 +1,11 @@
-// lib/supabase/server.ts – CORRECTED VERSION
 import { createServerClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js"; // ← Fixed import for SupabaseClient type
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "./types";
 
-export const createSupabaseServerClient = (): SupabaseClient<Database> => {
-    const cookieStore = cookies();
+// USER CLIENT
+export async function createSupabaseServerClient(): Promise<SupabaseClient<Database>> {
+    const cookieStore = await cookies();
 
     return createServerClient<Database>(
         process.env.SUPABASE_URL!,
@@ -18,31 +18,45 @@ export const createSupabaseServerClient = (): SupabaseClient<Database> => {
                 set(name: string, value: string, options: any) {
                     try {
                         cookieStore.set({ name, value, ...options });
-                    } catch {
-                        // ignore
-                    }
+                    } catch (e) {}
                 },
                 remove(name: string, options: any) {
                     try {
-                        cookieStore.set({ name, value: "", ...options, maxAge: 0 });
-                    } catch {
-                        // ignore
-                    }
+                        cookieStore.set({ name, value: "", ...options });
+                    } catch (e) {}
                 },
             },
         }
     );
-};
+}
 
-export const createSupabaseAdminClient = (): SupabaseClient<Database> => {
+// ADMIN CLIENT (SERVICE ROLE)
+export async function createSupabaseAdminClient(): Promise<SupabaseClient<Database>> {
+    const cookieStore = await cookies();
+
     return createServerClient<Database>(
         process.env.SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         {
+            cookies: {
+                get(name: string) {
+                    return cookieStore.get(name)?.value;
+                },
+                set(name: string, value: string, options: any) {
+                    try {
+                        cookieStore.set({ name, value, ...options });
+                    } catch (e) {}
+                },
+                remove(name: string, options: any) {
+                    try {
+                        cookieStore.set({ name, value: "", ...options });
+                    } catch (e) {}
+                },
+            },
             auth: {
                 autoRefreshToken: false,
                 persistSession: false,
             },
         }
     );
-};
+}

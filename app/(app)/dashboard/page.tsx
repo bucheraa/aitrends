@@ -1,10 +1,10 @@
-// app/(app)/dashboard/page.tsx
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TrendCard } from "@/components/trend-card";
 import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
-    const supabase = createSupabaseServerClient(); // ← KEIN await mehr!
+    // WICHTIG: Supabase-Client awaiten
+    const supabase = await createSupabaseServerClient();
 
     const {
         data: { user },
@@ -20,6 +20,7 @@ export default async function Dashboard() {
     return (
         <div className="container mx-auto p-8">
             <h1 className="text-4xl font-bold mb-8">Deine Bookmarks</h1>
+
             {bookmarks && bookmarks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {bookmarks.map((b: any) => (
