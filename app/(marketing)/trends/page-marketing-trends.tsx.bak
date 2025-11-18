@@ -1,0 +1,23 @@
+import { FilterBar } from "@/components/filter-bar";
+import { TrendCard } from "@/components/trend-card";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export default async function TrendsOverview({ searchParams }: { searchParams: { [key: string]: string } }) {
+    const supabase = createSupabaseServerClient();
+    let query = supabase.from("trends").select("*");
+
+    // Apply filters from searchParams (category, time, etc.)
+    if (searchParams.category) query = query.eq("category", searchParams.category);
+    // ... other filters
+
+    const { data: trends } = await query;
+
+    return (
+        <div className="p-8">
+            <FilterBar />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {trends?.map((trend) => <TrendCard key={trend.id} trend={trend} />)}
+            </div>
+        </div>
+    );
+}

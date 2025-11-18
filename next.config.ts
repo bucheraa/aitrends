@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+// next.config.mjs
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+    // Turbopack ist noch nicht ready für Supabase SSR → abschalten!
+    experimental: {
+        turbopack: false,   // ← Das behebt ALLE cookieStore-Fehler sofort
+    },
 };
 
 export default nextConfig;
